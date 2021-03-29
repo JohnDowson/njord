@@ -1,0 +1,17 @@
+[package]
+name = "njord-core"
+version = "0.1.0"
+authors = ["John Dowson <dowson.john.pony@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4"
+reqwest = { version = "0.11", features = ["serde_json"] }
+serde = "1.0"
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+[dev-dependencies]
+tokio = { version = "1.4", features = ["macros"] }
