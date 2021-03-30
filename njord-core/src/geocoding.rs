@@ -1,4 +1,5 @@
-use reqwest::Response;
+use crate::USER_AGENT;
+use reqwest::Client;
 use serde_json::Value;
 use thiserror::Error;
 pub type GeocodingResult = anyhow::Result<Coordinate>;
@@ -17,17 +18,15 @@ pub struct Coordinate {
 }
 static NOMINATIM_URL: &str = "https://nominatim.openstreetmap.org/search.php?format=json&city=";
 pub async fn geocode(location_name: &str) -> GeocodingResult {
-    let client = reqwest::Client::default();
+    let client = Client::builder().user_agent(USER_AGENT).build()?;
     client
         .get(format!("{}{}", NOMINATIM_URL, location_name))
-        .header("User-Agent", "Njord/0.1.0 github.com/JohnDowson")
         .send()
         .await
-        .map(get_location)?
+        .map(|r| async { get_location(&r.text().await?) })?
         .await
 }
-async fn get_location(resp: Response) -> GeocodingResult {
-    let resp_text: String = resp.text().await?;
+pub(crate) fn get_location(resp_text: &str) -> GeocodingResult {
     let json_value: Value = serde_json::from_str(&resp_text)?;
     if let Value::Array(v) = json_value {
         let location = match v.first() {
