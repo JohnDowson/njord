@@ -1,6 +1,6 @@
 use crate::USER_AGENT;
 use reqwest::Client;
-use serde_json::Value;
+use serde::Deserialize;
 use thiserror::Error;
 pub type GeocodingResult = anyhow::Result<Coordinate>;
 #[derive(Debug, Error)]
@@ -12,6 +12,7 @@ pub enum GeocodingError {
     #[error("Unexpected geocoding responce")]
     UnexpectedResponceFormat,
 }
+#[derive(Deserialize)]
 pub struct Coordinate {
     pub lat: f64,
     pub lon: f64,
@@ -27,22 +28,8 @@ pub async fn geocode(location_name: &str) -> GeocodingResult {
         .await
 }
 pub(crate) fn get_location(resp_text: &str) -> GeocodingResult {
-    let json_value: Value = serde_json::from_str(&resp_text)?;
-    if let Value::Array(v) = json_value {
-        let location = match v.first() {
-            Some(Value::Object(location)) => Ok(location),
-            None => Err(GeocodingError::LocationNotFound),
-            _ => Err(GeocodingError::UnexpectedResponceFormat),
-        }?;
-
-        let (lat, lon) = match (location.get("lat"), location.get("lon")) {
-            (Some(Value::String(lat)), Some(Value::String(lon))) => {
-                Ok((lat.parse()?, lon.parse()?))
-            }
-            _ => Err(GeocodingError::UnexpectedResponceFormat),
-        }?;
-        Ok(Coordinate { lat, lon })
-    } else {
-        Err(GeocodingError::UnexpectedResponceFormat.into())
-    }
+    serde_json::from_str::<Vec<Coordinate>>(&resp_text)?
+        .into_iter()
+        .next()
+        .map_or_else(|| Err(GeocodingError::LocationNotFound.into()), Ok)
 }

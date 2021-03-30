@@ -1,5 +1,6 @@
 pub mod geocoding;
 pub mod weather;
+pub use chrono as hronos;
 static USER_AGENT: &str = "Njord/0.1 github.com/JohnDowson";
 #[cfg(test)]
 mod tests {
@@ -11,7 +12,8 @@ mod tests {
         lat: 55.750_446,
         lon: 37.617_493,
     };
-    const EPSILON: f64 = 0.00001;
+    const EPSILON_F64: f64 = 0.00001;
+    const EPSILON_F32: f32 = 0.001;
     #[tokio::test]
     async fn geocoding_moscow() {
         let moscow_location = match geocode("moscow").await {
@@ -21,8 +23,8 @@ mod tests {
             }
         };
         assert!({
-            moscow_location.lat - KNOWN_LOCATION.lat < EPSILON
-                && moscow_location.lon - KNOWN_LOCATION.lon < EPSILON
+            moscow_location.lat - KNOWN_LOCATION.lat < EPSILON_F64
+                && moscow_location.lon - KNOWN_LOCATION.lon < EPSILON_F64
         })
     }
     #[test]
@@ -30,8 +32,8 @@ mod tests {
         let json = r#"[{"lat": "55.7504461","lon": "37.6174943"}]"#;
         let location = get_location(json).expect("Couldn't parse location");
         assert!({
-            location.lat - KNOWN_LOCATION.lat < EPSILON
-                && location.lon - KNOWN_LOCATION.lon < EPSILON
+            location.lat - KNOWN_LOCATION.lat < EPSILON_F64
+                && location.lon - KNOWN_LOCATION.lon < EPSILON_F64
         })
     }
 
@@ -66,7 +68,7 @@ mod tests {
         let date = Utc.timestamp(1617094800, 0).date();
         assert!(
             OpenWeather::extract_daily_temp(json, date).expect("Failed to parse json") - 274.4
-                < EPSILON
+                < EPSILON_F32
         )
     }
 

@@ -1,15 +1,15 @@
 use crate::geocoding::Coordinate;
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{Date, TimeZone, Utc};
+use chrono::{serde::ts_seconds, Date, DateTime, Utc};
 use reqwest::Client;
-use serde_json::Value;
+use serde::Deserialize;
 
 use super::USER_AGENT;
 #[async_trait]
 pub trait WeatherProvider {
-    async fn daily_forecast(&self, location: Coordinate, date: Date<Utc>) -> Result<f64>;
-    async fn weekly_forecast(&self, location: Coordinate) -> Result<f64>;
+    async fn daily_forecast(&self, location: Coordinate, date: Date<Utc>) -> Result<f32>;
+    async fn weekly_forecast(&self, location: Coordinate) -> Result<f32>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -18,6 +18,22 @@ pub enum WeatherProviderError {
     InvalidFormat,
     #[error("No weather data for given date")]
     NotFound,
+}
+
+#[derive(Deserialize)]
+struct OWForecast {
+    daily: Vec<OWDailyForecast>,
+}
+#[derive(Deserialize)]
+struct OWDailyForecast {
+    #[serde(with = "ts_seconds")]
+    dt: DateTime<Utc>,
+    temp: OWDailyTemp,
+}
+
+#[derive(Deserialize)]
+struct OWDailyTemp {
+    day: f32,
 }
 pub struct OpenWeather {
     url: String,
@@ -37,62 +53,23 @@ impl OpenWeather {
             .replace("{lon}", &lon.to_string())
             .replace("{lat}", &lat.to_string())
     }
-    pub(crate) fn extract_daily_temp(json: &str, date: Date<Utc>) -> Result<f64> {
-        macro_rules! err {
-            () => {
-                return Some(Err(crate::weather::WeatherProviderError::InvalidFormat))
-            };
-        }
-        let value: Value = serde_json::from_str(json)?;
-        let daily = if let Value::Object(o) = value {
-            if let Some(Value::Array(ds)) = o.get("daily") {
-                ds.iter()
-                    .find_map(|d| -> Option<Result<f64, WeatherProviderError>> {
-                        if let Value::Object(d) = d {
-                            let dt = if let Some(Value::Number(dt)) = d.get("dt") {
-                                if let Some(dt) = dt.as_i64() {
-                                    dt
-                                } else {
-                                    err!();
-                                }
-                            } else {
-                                err!();
-                            };
-                            if Utc.timestamp(dt, 0).date() != date {
-                                None
-                            } else if let Some(Value::Object(ts)) = d.get("temp") {
-                                if let Some(Value::Number(t)) = ts.get("day") {
-                                    if let Some(temp) = t.as_f64() {
-                                        Some(Ok(temp))
-                                    } else {
-                                        err!();
-                                    }
-                                } else {
-                                    err!();
-                                }
-                            } else {
-                                err!();
-                            }
-                        } else {
-                            err!();
-                        }
-                    })
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        if let Some(daily) = daily {
-            daily.map_err(|e| e.into())
-        } else {
-            Err(WeatherProviderError::NotFound.into())
-        }
+    pub(crate) fn extract_daily_temp(json: &str, date: Date<Utc>) -> Result<f32> {
+        serde_json::from_str::<OWForecast>(json)?
+            .daily
+            .iter()
+            .find_map(|d| {
+                if d.dt.date() == date {
+                    Some(d.temp.day)
+                } else {
+                    None
+                }
+            })
+            .map_or_else(|| Err(WeatherProviderError::NotFound.into()), Ok)
     }
 }
 #[async_trait]
 impl WeatherProvider for OpenWeather {
-    async fn daily_forecast(&self, location: Coordinate, date: Date<Utc>) -> Result<f64> {
+    async fn daily_forecast(&self, location: Coordinate, date: Date<Utc>) -> Result<f32> {
         let resp = self
             .client
             .get(self.format_url(location.lon, location.lat))
@@ -103,7 +80,7 @@ impl WeatherProvider for OpenWeather {
         Self::extract_daily_temp(&resp, date)
     }
 
-    async fn weekly_forecast(&self, location: Coordinate) -> Result<f64> {
+    async fn weekly_forecast(&self, location: Coordinate) -> Result<f32> {
         unimplemented!()
     }
 }
