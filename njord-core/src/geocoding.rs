@@ -1,6 +1,7 @@
 use crate::USER_AGENT;
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{de, Deserialize, Deserializer};
+use std::{fmt::Display, str::FromStr};
 use thiserror::Error;
 pub type GeocodingResult = anyhow::Result<Coordinate>;
 #[derive(Debug, Error)]
@@ -14,9 +15,22 @@ pub enum GeocodingError {
 }
 #[derive(Deserialize)]
 pub struct Coordinate {
+    #[serde(deserialize_with = "from_str")]
     pub lat: f64,
+    #[serde(deserialize_with = "from_str")]
     pub lon: f64,
 }
+
+fn from_str<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+    T: FromStr,
+    T::Err: Display,
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    T::from_str(&s).map_err(de::Error::custom)
+}
+
 static NOMINATIM_URL: &str = "https://nominatim.openstreetmap.org/search.php?format=json&city=";
 pub async fn geocode(location_name: &str) -> GeocodingResult {
     let client = Client::builder().user_agent(USER_AGENT).build()?;
