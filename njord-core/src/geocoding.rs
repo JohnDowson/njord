@@ -21,6 +21,7 @@ pub struct Coordinate {
     pub lon: f64,
 }
 
+// https://github.com/serde-rs/json/issues/560#issuecomment-532054058
 fn from_str<'de, T, D>(deserializer: D) -> Result<T, D::Error>
 where
     T: FromStr,

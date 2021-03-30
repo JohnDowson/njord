@@ -37,41 +37,35 @@ mod tests {
         })
     }
 
+    const OWM_JSON: &str = include_str!("../../onecall.json");
+
     #[test]
     fn parse_openweather_response() {
-        let json = r#"{
-            "daily": [
-                {
-                    "dt": 1617094800,
-                    "temp": {
-                        "day": 274.4,
-                        "min": 269.32,
-                        "max": 275.84,
-                        "night": 274.31,
-                        "eve": 275.3,
-                        "morn": 269.32
-                    }
-                },
-                {
-                    "dt": 1617181200,
-                    "temp": {
-                        "day": 275.71,
-                        "min": 274.35,
-                        "max": 277.5,
-                        "night": 277.5,
-                        "eve": 276.2,
-                        "morn": 275.86
-                    }
-                }
-            ]
-        }"#;
         let date = Utc.timestamp(1617094800, 0).date();
         assert!(
-            OpenWeather::extract_daily_temp(json, date).expect("Failed to parse json") - 274.4
+            OpenWeather::extract_daily_temp(OWM_JSON, date).expect("Failed to parse json") - 274.4
                 < EPSILON_F32
         )
     }
-
+    #[test]
+    fn parse_weekly_ow_response() {
+        let date = Utc.timestamp(1617440400, 0).date();
+        let other = vec![
+            (Utc.timestamp(1617094800, 0).date(), 274.4f32),
+            (Utc.timestamp(1617181200, 0).date(), 275.71),
+            (Utc.timestamp(1617267600, 0).date(), 277.87),
+            (Utc.timestamp(1617354000, 0).date(), 278.39),
+            (Utc.timestamp(1617440400, 0).date(), 275.19),
+        ];
+        assert!(OpenWeather::extract_period_temps(OWM_JSON, date)
+            .expect("Failed to parse json")
+            .into_iter()
+            .zip(other)
+            .all(|(a, b)| {
+                eprintln!("a: {:#?}\nb:{:#?}", a, b);
+                a == b
+            }))
+    }
     #[tokio::test]
     async fn get_data_from_openweather() {
         use weather::WeatherProvider;
@@ -80,5 +74,13 @@ mod tests {
         let date = Utc::today();
         let daily_forecast = provider.daily_forecast(KNOWN_LOCATION, date).await;
         assert!(daily_forecast.is_ok())
+    }
+    #[tokio::test]
+    async fn get_weekly_data_from_openweather() {
+        use weather::WeatherProvider;
+        static API_KEY: &str = "32b610b48c69c28535625ba98d4a58bb";
+        let provider = OpenWeather::new(API_KEY);
+        let weekly_forecast = provider.weekly_forecast(KNOWN_LOCATION).await;
+        assert!(weekly_forecast.is_ok());
     }
 }
