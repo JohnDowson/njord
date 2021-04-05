@@ -2,7 +2,7 @@
 pub mod geocoding;
 pub mod weather;
 pub use reqwest::Client;
-static USER_AGENT: &str = "Njord/0.1 github.com/JohnDowson";
+pub static USER_AGENT: &str = "Njord/0.1 github.com/JohnDowson";
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -69,19 +69,27 @@ mod tests {
     }
     #[tokio::test]
     async fn get_data_from_openweather() {
+        let client = Client::builder()
+            .user_agent(USER_AGENT)
+            .build()
+            .expect("Failed to build client");
         use weather::WeatherProvider;
         static API_KEY: &str = "32b610b48c69c28535625ba98d4a58bb";
         let provider = OpenWeather::new(API_KEY);
         let date = Utc::today();
-        let daily_forecast = provider.daily_forecast(KNOWN_LOCATION, date).await;
+        let daily_forecast = provider.daily_forecast(&client, KNOWN_LOCATION, date).await;
         assert!(daily_forecast.is_ok())
     }
     #[tokio::test]
     async fn get_weekly_data_from_openweather() {
+        let client = Client::builder()
+            .user_agent(USER_AGENT)
+            .build()
+            .expect("Failed to build client");
         use weather::WeatherProvider;
         static API_KEY: &str = "32b610b48c69c28535625ba98d4a58bb";
         let provider = OpenWeather::new(API_KEY);
-        let weekly_forecast = provider.weekly_forecast(KNOWN_LOCATION).await;
+        let weekly_forecast = provider.weekly_forecast(&client, KNOWN_LOCATION).await;
         assert!(weekly_forecast.is_ok());
     }
 }

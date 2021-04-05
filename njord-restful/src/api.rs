@@ -47,7 +47,7 @@ pub async fn daily(
     let mut errors = Vec::with_capacity(providers.inner.len());
     let mut temps = Vec::with_capacity(providers.inner.len());
     for p in providers.inner.iter() {
-        match p.daily_forecast(location, date).await {
+        match p.daily_forecast(&providers.client, location, date).await {
             Err(e) => errors.push(format!("{} : {}", p.clone().id(), e.to_string())),
             Ok(t) => temps.push(t),
         };
@@ -77,7 +77,7 @@ pub async fn weekly(
     let mut errors = Vec::with_capacity(providers.inner.len());
     let mut temps = HashMap::with_capacity(providers.inner.len());
     for p in providers.inner.iter() {
-        match p.weekly_forecast(location).await {
+        match p.weekly_forecast(&providers.client, location).await {
             Err(e) => errors.push(format!("{} : {}", p.clone().id(), e.to_string())),
             Ok(t) => t.into_iter().for_each(|(d, t)| {
                 temps.entry(d).or_insert_with(|| vec![t]);

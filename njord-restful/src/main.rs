@@ -7,10 +7,17 @@ use njord_core::weather::{OpenWeather, WeatherProvider};
 #[derive(Clone)]
 pub struct Providers {
     inner: Vec<Arc<dyn WeatherProvider + Sync>>,
+    client: reqwest::Client,
 }
 impl<'a, 'b> Providers {
     fn new() -> Self {
-        Self { inner: vec![] }
+        Self {
+            inner: vec![],
+            client: reqwest::Client::builder()
+                .user_agent(njord_core::USER_AGENT)
+                .build()
+                .expect("Failed to build client"),
+        }
     }
     fn register<T: 'static + WeatherProvider + Sync>(mut self, provider: T) -> Self {
         self.inner.push(Arc::new(provider));

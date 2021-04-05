@@ -11,8 +11,17 @@ where
     Self: Send,
 {
     fn id(self: Arc<Self>) -> &'static str;
-    async fn daily_forecast(&self, location: Coordinate, date: Date<Utc>) -> Result<f32>;
-    async fn weekly_forecast(&self, location: Coordinate) -> Result<HashMap<Date<Utc>, f32>>;
+    async fn daily_forecast(
+        &self,
+        client: &Client,
+        location: Coordinate,
+        date: Date<Utc>,
+    ) -> Result<f32>;
+    async fn weekly_forecast(
+        &self,
+        client: &Client,
+        location: Coordinate,
+    ) -> Result<HashMap<Date<Utc>, f32>>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -26,3 +35,4 @@ mod openweather;
 pub use openweather::OpenWeather;
 mod met_no;
 pub use met_no::MetNo;
+use reqwest::Client;

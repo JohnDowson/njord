@@ -25,15 +25,12 @@ pub struct OWDailyTemp {
 }
 pub struct OpenWeather {
     url: String,
-    client: Client,
 }
 impl OpenWeather {
     const URL: &'static str = "https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=current,minutely,hourly,alerts&units=metric&appid={API_key}";
     pub fn new(api_key: &str) -> Self {
         Self {
             url: Self::URL.replace("{API_key}", api_key),
-            // Unwrap: non-recoverable
-            client: Client::builder().user_agent(USER_AGENT).build().unwrap(),
         }
     }
     fn format_url(&self, lon: f64, lat: f64) -> String {
@@ -87,9 +84,13 @@ impl OpenWeather {
 
 #[async_trait]
 impl WeatherProvider for OpenWeather {
-    async fn daily_forecast(&self, location: Coordinate, date: Date<Utc>) -> Result<f32> {
-        let resp = self
-            .client
+    async fn daily_forecast(
+        &self,
+        client: &Client,
+        location: Coordinate,
+        date: Date<Utc>,
+    ) -> Result<f32> {
+        let resp = client
             .get(&self.format_url(location.lon, location.lat))
             .send()
             .await?
@@ -98,10 +99,13 @@ impl WeatherProvider for OpenWeather {
         Self::extract_daily_temp(&resp, date)
     }
 
-    async fn weekly_forecast(&self, location: Coordinate) -> Result<HashMap<Date<Utc>, f32>> {
+    async fn weekly_forecast(
+        &self,
+        client: &Client,
+        location: Coordinate,
+    ) -> Result<HashMap<Date<Utc>, f32>> {
         let end_of_week = Utc::today() + Duration::days(5);
-        let resp = self
-            .client
+        let resp = client
             .get(&self.format_url(location.lon, location.lat))
             .send()
             .await?
