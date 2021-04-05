@@ -50,6 +50,7 @@ mod tests {
                 < EPSILON_F32
         )
     }
+    use std::collections::HashMap;
     #[test]
     fn parse_weekly_ow_response() {
         let date = Utc.timestamp(1617440400, 0).date();
@@ -59,14 +60,16 @@ mod tests {
             (Utc.timestamp(1617267600, 0).date(), 277.87),
             (Utc.timestamp(1617354000, 0).date(), 278.39),
             (Utc.timestamp(1617440400, 0).date(), 275.19),
-        ];
+        ]
+        .into_iter()
+        .collect::<HashMap<_, _>>();
         assert!(OpenWeather::extract_period_temps(OWM_JSON, date)
             .expect("Failed to parse json")
             .into_iter()
-            .zip(other)
-            .all(|(a, b)| {
-                eprintln!("a: {:#?}\nb:{:#?}", a, b);
-                a == b
+            .all(|(d, ta)| {
+                let tb = other.get(&d).unwrap();
+                eprintln!("a: {:#?}\nb:{:#?}", ta, tb);
+                ta - tb < EPSILON_F32
             }))
     }
     #[tokio::test]
