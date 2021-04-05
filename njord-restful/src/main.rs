@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 use actix_web::{middleware::Logger, App, HttpServer};
 use njord_core::weather::{MetNo, OpenWeather, WeatherProvider};
-
+#[doc(hidden)]
 const OW_API_KEY: &str = "32b610b48c69c28535625ba98d4a58bb";
 #[derive(Clone)]
+/// Provides access to weather providers
 pub struct Providers {
     inner: Vec<Arc<dyn WeatherProvider + Sync>>,
     client: reqwest::Client,
@@ -20,6 +21,15 @@ impl<'a, 'b> Providers {
                 .expect("Failed to build client"),
         }
     }
+    /**
+    Registers a new weather provider. Calls can be chained together. i.e:i
+    ```
+    Providers::new()
+        .register(MetNo)
+        .register(OpenWeather::new("apike"))
+    ```
+    */
+
     fn register<T: 'static + WeatherProvider + Sync>(mut self, provider: T) -> Self {
         self.inner.push(Arc::new(provider));
         self
@@ -27,6 +37,7 @@ impl<'a, 'b> Providers {
 }
 
 #[actix_web::main]
+#[doc(hidden)]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
@@ -75,7 +86,7 @@ mod tests {
                         .register(MetNo)
                         .register(OpenWeather::new(OW_API_KEY)),
                 )
-                .service(api::daily),
+                .service(api::weekly),
         )
         .await;
         let req = test::TestRequest::with_uri("/weekly?location=Moscow").to_request();
@@ -83,7 +94,6 @@ mod tests {
         assert!(resp.status().is_success())
     }
     #[actix_rt::test]
-    #[should_panic]
     async fn incorrect_params_weekly() {
         let mut app = test::init_service(
             App::new()
@@ -92,7 +102,7 @@ mod tests {
                         .register(MetNo)
                         .register(OpenWeather::new(OW_API_KEY)),
                 )
-                .service(api::daily),
+                .service(api::weekly),
         )
         .await;
         let req = test::TestRequest::with_uri("/weekly").to_request();

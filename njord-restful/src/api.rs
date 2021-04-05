@@ -20,10 +20,12 @@ pub(crate) enum DailyForecastResponce {
     Ok(f32),
     Error { errors: Vec<String> },
 }
+#[doc(hidden)]
 #[derive(Deserialize)]
 pub struct WeeklyQuery {
     location: String,
 }
+#[doc(hidden)]
 #[derive(Deserialize)]
 pub struct DailyQuery {
     location: String,
@@ -31,6 +33,10 @@ pub struct DailyQuery {
 }
 
 #[get("/daily")]
+/**
+Usage:
+`GET /daily?location={Location name}[&date={yyyy-mm-dd}]`
+*/
 pub async fn daily(
     Query(query): Query<DailyQuery>,
     providers: web::Data<Providers>,
@@ -66,6 +72,10 @@ pub async fn daily(
 }
 
 #[get("/weekly")]
+/**
+Usage:
+`GET /weekly?location={Location name}`
+*/
 pub async fn weekly(
     Query(query): Query<WeeklyQuery>,
     providers: web::Data<Providers>,
