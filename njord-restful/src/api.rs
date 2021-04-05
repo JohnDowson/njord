@@ -6,8 +6,8 @@ use actix_web::{
     web::{self, Json, Query},
     Responder,
 };
-use chrono::{Date, DateTime, NaiveDate, Utc};
-use njord_core::geocoding::{self, Coordinate};
+use chrono::{Date, NaiveDate, Utc};
+use njord_core::geocoding::{self};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
@@ -80,7 +80,7 @@ pub async fn weekly(
         match p.weekly_forecast(location).await {
             Err(e) => errors.push(format!("{} : {}", p.clone().id(), e.to_string())),
             Ok(t) => t.into_iter().for_each(|(d, t)| {
-                temps.entry(d).or_insert(vec![t]);
+                temps.entry(d).or_insert_with(|| vec![t]);
             }),
         };
     }

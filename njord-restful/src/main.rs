@@ -1,7 +1,7 @@
 mod api;
 use std::sync::Arc;
 
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{middleware::Logger, App, HttpServer};
 use njord_core::weather::{OpenWeather, WeatherProvider};
 
 #[derive(Clone)]

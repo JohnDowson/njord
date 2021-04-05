@@ -1,3 +1,4 @@
+#![allow(clippy::upper_case_acronyms)]
 pub mod geocoding;
 pub mod weather;
 pub use reqwest::Client;
@@ -19,7 +20,7 @@ mod tests {
         let moscow_location = match geocode("moscow").await {
             Ok(l) => l,
             Err(e) => {
-                panic!(format!("FOOBAR: {}", e));
+                panic!("FOOBAR: {}", e);
             }
         };
         assert!({
