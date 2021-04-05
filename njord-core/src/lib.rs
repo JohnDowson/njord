@@ -1,6 +1,6 @@
 pub mod geocoding;
 pub mod weather;
-pub use chrono as hronos;
+pub use reqwest::Client;
 static USER_AGENT: &str = "Njord/0.1 github.com/JohnDowson";
 #[cfg(test)]
 mod tests {

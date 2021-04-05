@@ -1,3 +1,5 @@
+use std::{collections::HashMap, sync::Arc};
+
 use super::{Coordinate, WeatherProvider, WeatherProviderError};
 use crate::USER_AGENT;
 use anyhow::Result;
@@ -53,18 +55,18 @@ impl OpenWeather {
                     None
                 }
             })
-            .map_or_else(|| Err(WeatherProviderError::NotFound.into()), Ok)
+            .map_or_else(|| Err(WeatherProviderError::NotFound(date).into()), Ok)
     }
 
     pub(crate) fn extract_period_temps(
         json: &str,
         end: Date<Utc>,
-    ) -> Result<Vec<(Date<Utc>, f32)>> {
+    ) -> Result<HashMap<Date<Utc>, f32>> {
         let OWForecast {
             timezone_offset,
             daily,
         } = serde_json::from_str(json)?;
-        let forecast = daily
+        let forecast: HashMap<Date<Utc>, f32> = daily
             .iter()
             .filter_map(|d| {
                 let date = Utc.timestamp(d.dt + timezone_offset, 0).date();
@@ -74,9 +76,9 @@ impl OpenWeather {
                     None
                 }
             })
-            .collect::<Vec<_>>();
+            .collect();
         if forecast.is_empty() {
-            Err(WeatherProviderError::NotFound.into())
+            Err(WeatherProviderError::NotFound(end).into())
         } else {
             Ok(forecast)
         }
@@ -88,7 +90,7 @@ impl WeatherProvider for OpenWeather {
     async fn daily_forecast(&self, location: Coordinate, date: Date<Utc>) -> Result<f32> {
         let resp = self
             .client
-            .get(self.format_url(location.lon, location.lat))
+            .get(&self.format_url(location.lon, location.lat))
             .send()
             .await?
             .text()
@@ -96,15 +98,19 @@ impl WeatherProvider for OpenWeather {
         Self::extract_daily_temp(&resp, date)
     }
 
-    async fn weekly_forecast(&self, location: Coordinate) -> Result<Vec<(Date<Utc>, f32)>> {
+    async fn weekly_forecast(&self, location: Coordinate) -> Result<HashMap<Date<Utc>, f32>> {
         let end_of_week = Utc::today() + Duration::days(5);
         let resp = self
             .client
-            .get(self.format_url(location.lon, location.lat))
+            .get(&self.format_url(location.lon, location.lat))
             .send()
             .await?
             .text()
             .await?;
         Self::extract_period_temps(&resp, end_of_week)
+    }
+
+    fn id(self: Arc<Self>) -> &'static str {
+        "openweathermap.org"
     }
 }

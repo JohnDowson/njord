@@ -13,7 +13,7 @@ pub enum GeocodingError {
     #[error("Unexpected geocoding responce")]
     UnexpectedResponceFormat,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Copy)]
 pub struct Coordinate {
     #[serde(deserialize_with = "from_str")]
     pub lat: f64,
@@ -36,7 +36,7 @@ static NOMINATIM_URL: &str = "https://nominatim.openstreetmap.org/search.php?for
 pub async fn geocode(location_name: &str) -> GeocodingResult {
     let client = Client::builder().user_agent(USER_AGENT).build()?;
     client
-        .get(format!("{}{}", NOMINATIM_URL, location_name))
+        .get(&format!("{}{}", NOMINATIM_URL, location_name))
         .send()
         .await
         .map(|r| async { get_location(&r.text().await?) })?

@@ -1,2 +1,3 @@
 [workspace]
 members = ["njord-core", "njord-restful", "njord-cli"]
+default-members = ["njord-restful"]
