@@ -7,7 +7,7 @@ use actix_web::{
     Responder,
 };
 use chrono::{Date, NaiveDate, Utc};
-use njord_core::geocoding::{self};
+use njord_core::geocoding;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
@@ -27,7 +27,7 @@ pub struct WeeklyQuery {
 #[derive(Deserialize)]
 pub struct DailyQuery {
     location: String,
-    date: NaiveDate,
+    date: Option<NaiveDate>,
 }
 
 #[get("/daily")]
@@ -43,7 +43,11 @@ pub async fn daily(
             })
         }
     };
-    let date = Date::<Utc>::from_utc(query.date, Utc);
+    let date = if let Some(d) = query.date {
+        Date::<Utc>::from_utc(d, Utc)
+    } else {
+        Utc::today()
+    };
     let mut errors = Vec::with_capacity(providers.inner.len());
     let mut temps = Vec::with_capacity(providers.inner.len());
     for p in providers.inner.iter() {

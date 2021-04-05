@@ -2,7 +2,7 @@ mod api;
 use std::sync::Arc;
 
 use actix_web::{middleware::Logger, App, HttpServer};
-use njord_core::weather::{OpenWeather, WeatherProvider};
+use njord_core::weather::{MetNo, OpenWeather, WeatherProvider};
 
 #[derive(Clone)]
 pub struct Providers {
@@ -31,7 +31,11 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
     HttpServer::new(|| {
         App::new()
-            .data(Providers::new().register(OpenWeather::new("32b610b48c69c28535625ba98d4a58bb")))
+            .data(
+                Providers::new()
+                    .register(OpenWeather::new("32b610b48c69c28535625ba98d4a58bb"))
+                    .register(MetNo),
+            )
             .wrap(Logger::default())
             .service(api::daily)
             .service(api::weekly)
