@@ -1,7 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 use super::{Coordinate, WeatherProvider, WeatherProviderError};
-use crate::USER_AGENT;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{Date, Duration, TimeZone, Utc};

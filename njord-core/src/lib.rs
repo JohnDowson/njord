@@ -2,6 +2,7 @@
 pub mod geocoding;
 pub mod weather;
 pub use reqwest::Client;
+mod util;
 pub static USER_AGENT: &str = "Njord/0.1 github.com/JohnDowson";
 #[cfg(test)]
 mod tests {
@@ -9,6 +10,7 @@ mod tests {
     use chrono::{TimeZone, Utc};
     use geocoding::*;
     use weather::OpenWeather;
+    use weather::*;
     const KNOWN_LOCATION: Coordinate = Coordinate {
         lat: 55.750_446,
         lon: 37.617_493,
@@ -73,7 +75,6 @@ mod tests {
             .user_agent(USER_AGENT)
             .build()
             .expect("Failed to build client");
-        use weather::WeatherProvider;
         static API_KEY: &str = "32b610b48c69c28535625ba98d4a58bb";
         let provider = OpenWeather::new(API_KEY);
         let date = Utc::today();
@@ -86,10 +87,22 @@ mod tests {
             .user_agent(USER_AGENT)
             .build()
             .expect("Failed to build client");
-        use weather::WeatherProvider;
         static API_KEY: &str = "32b610b48c69c28535625ba98d4a58bb";
         let provider = OpenWeather::new(API_KEY);
         let weekly_forecast = provider.weekly_forecast(&client, KNOWN_LOCATION).await;
         assert!(weekly_forecast.is_ok());
+    }
+
+    #[tokio::test]
+    async fn get_daily_data_from_metno() {
+        let client = Client::builder()
+            .user_agent(USER_AGENT)
+            .build()
+            .expect("Failed to build client");
+        let provider = MetNo;
+        let daily_forecast = provider
+            .daily_forecast(&client, KNOWN_LOCATION, Utc::today())
+            .await
+            .unwrap();
     }
 }
