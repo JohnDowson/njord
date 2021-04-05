@@ -39,8 +39,21 @@ impl<'a, 'b> Providers {
 #[actix_web::main]
 #[doc(hidden)]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=info");
+    use std::env;
+    if let Err(env::VarError::NotPresent) = env::var("RUST_LOG") {
+        env::set_var("RUST_LOG", "actix_web=info")
+    }
     env_logger::init();
+
+    let addr: std::net::IpAddr = env::var("NJORD_ADDR")
+        .unwrap_or_else(|_| "127.0.0.1".to_owned())
+        .parse()
+        .expect("Invalid value for IP address");
+    let port = env::var("NJORD_PORT")
+        .unwrap_or_else(|_| "8080".to_owned())
+        .parse()
+        .expect("Invalid value for port");
+
     HttpServer::new(|| {
         App::new()
             .data(
@@ -52,7 +65,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::daily)
             .service(api::weekly)
     })
-    .bind("127.0.0.1:8080")?
+    .bind((addr, port))?
     .run()
     .await
 }
