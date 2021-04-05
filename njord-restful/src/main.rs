@@ -4,6 +4,7 @@ use std::sync::Arc;
 use actix_web::{middleware::Logger, App, HttpServer};
 use njord_core::weather::{MetNo, OpenWeather, WeatherProvider};
 
+const OW_API_KEY: &str = "32b610b48c69c28535625ba98d4a58bb";
 #[derive(Clone)]
 pub struct Providers {
     inner: Vec<Arc<dyn WeatherProvider + Sync>>,
@@ -33,7 +34,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .data(
                 Providers::new()
-                    .register(OpenWeather::new("32b610b48c69c28535625ba98d4a58bb"))
+                    .register(OpenWeather::new(OW_API_KEY))
                     .register(MetNo),
             )
             .wrap(Logger::default())
@@ -43,4 +44,75 @@ async fn main() -> std::io::Result<()> {
     .bind("127.0.0.1:8080")?
     .run()
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::test;
+    #[actix_rt::test]
+    async fn get_daily() {
+        let mut app = test::init_service(
+            App::new()
+                .data(
+                    Providers::new()
+                        .register(MetNo)
+                        .register(OpenWeather::new(OW_API_KEY)),
+                )
+                .service(api::daily),
+        )
+        .await;
+        let req = test::TestRequest::with_uri("/daily?location=Moscow").to_request();
+        let resp = test::call_service(&mut app, req).await;
+        assert!(resp.status().is_success())
+    }
+    #[actix_rt::test]
+    async fn get_weekly() {
+        let mut app = test::init_service(
+            App::new()
+                .data(
+                    Providers::new()
+                        .register(MetNo)
+                        .register(OpenWeather::new(OW_API_KEY)),
+                )
+                .service(api::daily),
+        )
+        .await;
+        let req = test::TestRequest::with_uri("/weekly?location=Moscow").to_request();
+        let resp = test::call_service(&mut app, req).await;
+        assert!(resp.status().is_success())
+    }
+    #[actix_rt::test]
+    #[should_panic]
+    async fn incorrect_params_weekly() {
+        let mut app = test::init_service(
+            App::new()
+                .data(
+                    Providers::new()
+                        .register(MetNo)
+                        .register(OpenWeather::new(OW_API_KEY)),
+                )
+                .service(api::daily),
+        )
+        .await;
+        let req = test::TestRequest::with_uri("/weekly").to_request();
+        let resp = test::call_service(&mut app, req).await;
+        assert!(resp.status().is_client_error())
+    }
+    #[actix_rt::test]
+    async fn incorrect_params_daily() {
+        let mut app = test::init_service(
+            App::new()
+                .data(
+                    Providers::new()
+                        .register(MetNo)
+                        .register(OpenWeather::new(OW_API_KEY)),
+                )
+                .service(api::daily),
+        )
+        .await;
+        let req = test::TestRequest::with_uri("/daily").to_request();
+        let resp = test::call_service(&mut app, req).await;
+        assert!(resp.status().is_client_error())
+    }
 }

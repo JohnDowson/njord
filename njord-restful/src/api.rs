@@ -11,12 +11,12 @@ use njord_core::geocoding;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
-enum WeeklyForecastResponce {
+pub(crate) enum WeeklyForecastResponce {
     Ok(HashMap<NaiveDate, f32>),
     Error { errors: Vec<String> },
 }
 #[derive(Deserialize, Serialize)]
-enum DailyForecastResponce {
+pub(crate) enum DailyForecastResponce {
     Ok(f32),
     Error { errors: Vec<String> },
 }

@@ -102,7 +102,7 @@ mod tests {
         let provider = MetNo;
         let daily_forecast = provider
             .daily_forecast(&client, KNOWN_LOCATION, Utc::today())
-            .await
-            .unwrap();
+            .await;
+        assert!(daily_forecast.is_ok())
     }
 }
